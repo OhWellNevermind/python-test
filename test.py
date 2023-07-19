@@ -96,6 +96,7 @@ def voice_generation():
     script_text = script.read()
 
     paragraphs = script_text.split('\n')
+    print(paragraphs)
 
     script = []
 
@@ -495,11 +496,11 @@ def zoom_in_effect(clip, zoom_ratio=0.04):
 def create_video():
     clips = []
 
-    voices = ['./audio_files_raw/{}'.format(f) for f in listdir(
-        './audio_files_raw') if isfile(join('./audio_files_raw', f))]
+    voices = natsorted(list(['./audio_files_raw/{}'.format(f) for f in listdir(
+        './audio_files_raw') if isfile(join('./audio_files_raw', f))]))
     images = natsorted(list(['./images/{}'.format(f)
                        for f in listdir('./images') if isfile(join('./images', f))]))
-
+    print(voices)
     for img, voice in zip(images, voices):
         audio = MP3(voice)
         audio_length = audio.info.length - 0.5
@@ -510,12 +511,12 @@ def create_video():
         clip = clip.set_audio(audio)
         clips.append(clip)
 
-    clips_fx = [clips[0]]
-    for clip in clips[1:]:
-        clip = zoom_in_effect(clip)
-        clips_fx.append(clip)
+    # clips_fx = [clips[0]]
+    # for clip in clips[1:]:
+    #     clip = zoom_in_effect(clip)
+    #     clips_fx.append(clip)
 
-    final_clip = concatenate_videoclips(clips_fx)
+    final_clip = concatenate_videoclips(clips)
     final_clip.write_videofile("./Final.mp4", fps=24)
 
 
