@@ -5,6 +5,8 @@ import os
 from os import listdir
 from os.path import isfile, join
 
+import random
+
 import easyocr
 import cv2
 
@@ -26,7 +28,9 @@ from moviepy.decorators import *
 from moviepy.video.fx import *
 from moviepy.video.compositing.transitions import *
 
-import itertools
+import numpy
+
+import math
 
 customtkinter.set_appearance_mode('dark')
 customtkinter.set_default_color_theme('blue')
@@ -449,6 +453,45 @@ def get_video_images_location():
     video_image_entry.configure(state=DISABLED)
 
 
+def get_random_animation(clip):
+    random_num = random.randint(0, 4)
+    if (clip == 0):
+        return clip.set_position(lambda t: ('center', 50+t))
+    elif (clip == 1):
+        print(1)
+
+
+def zoom_in_effect(clip, zoom_ratio=0.04):
+    def effect(get_frame, t):
+        img = Image.fromarray(get_frame(t))
+        base_size = img.size
+
+        new_size = [
+            math.ceil(img.size[0] * (1 + (zoom_ratio * t))),
+            math.ceil(img.size[1] * (1 + (zoom_ratio * t)))
+        ]
+
+        # The new dimensions must be even.
+        new_size[0] = new_size[0] + (new_size[0] % 2)
+        new_size[1] = new_size[1] + (new_size[1] % 2)
+
+        img = img.resize(new_size, Image.LANCZOS)
+
+        x = math.ceil((new_size[0] - base_size[0]) / 2)
+        y = math.ceil((new_size[1] - base_size[1]) / 2)
+
+        img = img.crop([
+            x, y, new_size[0] - x, new_size[1] - y
+        ]).resize(base_size, Image.LANCZOS)
+
+        result = numpy.array(img)
+        img.close()
+
+        return result
+
+    return clip.fl(effect)
+
+
 def create_video():
     clips = []
 
@@ -467,15 +510,12 @@ def create_video():
         clip = clip.set_audio(audio)
         clips.append(clip)
 
-    print(clips)
+    clips_fx = [clips[0]]
+    for clip in clips[1:]:
+        clip = zoom_in_effect(clip)
+        clips_fx.append(clip)
 
-    # clips_fx = [clips[0]]
-    # idx = clips[0].duration - 0.5
-    # for clip in clips[1:]:
-    #     clips_fx.append(slide_in(clip.set_start(idx), clip.duration - 0.5, 'left'))
-    #     idx += clip.duration - 0.5
-
-    final_clip = concatenate_videoclips(clips)
+    final_clip = concatenate_videoclips(clips_fx)
     final_clip.write_videofile("./Final.mp4", fps=24)
 
 
