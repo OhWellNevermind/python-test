@@ -27,6 +27,7 @@ from moviepy.editor import *
 from moviepy.decorators import *
 from moviepy.video.fx import *
 from moviepy.video.compositing.transitions import *
+from moviepy.video.fx.all import crop
 
 import numpy
 
@@ -455,15 +456,38 @@ def get_video_images_location():
 
 
 def get_random_animation(clip):
-    random_num = random.randint(0, 2)
+    random_num = random.randint(0, 7)
+    # random_num = 7
     print(random_num)
     if (random_num == 0):
-        return clip.set_position(lambda t: ('center', 50+t))
+        clip = clip.set_position(lambda t: (t * 20 + 10, -(t * 20) + 10))
+        clip.fps = 30
+        return clip
     elif (random_num == 1):
         clip = zoom_in_effect(clip, zoom_ratio=0.04)
         return clip
     elif (random_num == 2):
+        clip = clip.set_position(lambda t: (-(t * 20) + 10, -(t * 20) + 10))
+        clip.fps = 30
+        return clip
+    elif (random_num == 3):
         clip = zoom_out_effect(clip, zoom_ratio=0.04)
+        return clip
+    elif (random_num == 4):
+        clip = clip.set_position(lambda t: (t * 20 + 20, t * 20 + 20))
+        clip.fps = 30
+        return clip
+    elif (random_num == 5):
+        clip = clip.set_position(lambda t: (t * 30 + 10, 'center'))
+        clip.fps = 30
+        return clip
+    elif (random_num == 6):
+        clip = clip.set_position(lambda t: (-(t * 30) + 10, 'center'))
+        clip.fps = 30
+        return clip
+    elif (random_num == 7):
+        clip = clip.set_position(lambda t: (-(t * 20) + 10, t * 20 + 10))
+        clip.fps = 30
         return clip
 
 
@@ -537,23 +561,27 @@ def create_video():
     images = natsorted(list(['./images/{}'.format(f)
                        for f in listdir('./images') if isfile(join('./images', f))]))
 
+    i = True
     for img, voice in zip(images, voices):
-        audio = MP3(voice)
-        audio_length = audio.info.length - 0.5
-        clip = ImageClip(img, duration=audio_length)
-        clip.size = (1920, 1080)
-        clip = clip.on_color(color=(0, 177, 64), col_opacity=1)
         audio = AudioFileClip(voice)
+        audio_length = audio.duration - 0.5
+        clip = ImageClip(img, duration=audio_length, ismask=False)
+        clip.size = (1920, 1080)
+        clip = clip.on_color(color=(0, 0, 0), col_opacity=1)
         clip = clip.set_audio(audio)
-        clips.append(clip)
+        if not i:
+            clip = get_random_animation(clip)
+        i = False
+        bg = ColorClip(size=(1920, 1080),
+                       duration=audio_length, color=(0, 0, 0))
+        video = VideoClip(bg.make_frame, duration=audio_length)
+        video_with_img = CompositeVideoClip([video, clip])
 
-    clips_fx = [clips[0]]
-    for clip in clips[1:]:
-        clip = get_random_animation(clip)
-        clips_fx.append(clip)
+        clips.append(video_with_img)
+        bg.close()
 
-    final_clip = concatenate_videoclips(clips_fx)
-    final_clip.write_videofile("./Final.mp4", fps=24)
+    final_clip = concatenate_videoclips(clips)
+    final_clip.write_videofile("./Final.mp4", fps=30)
 
 
 video_images_label = customtkinter.CTkLabel(
@@ -584,8 +612,6 @@ video_audio_location.pack()
 
 
 def video_start():
-    print(video_images_location)
-    print(voices_location)
     if not video_images_location or not voices_location:
         tkinter.messagebox.showerror(
             title='Error', message='Please set images and video location location')
