@@ -455,11 +455,16 @@ def get_video_images_location():
 
 
 def get_random_animation(clip):
-    random_num = random.randint(0, 4)
-    if (clip == 0):
+    random_num = random.randint(0, 2)
+    print(random_num)
+    if (random_num == 0):
         return clip.set_position(lambda t: ('center', 50+t))
-    elif (clip == 1):
-        print(1)
+    elif (random_num == 1):
+        clip = zoom_in_effect(clip, zoom_ratio=0.04)
+        return clip
+    elif (random_num == 2):
+        clip = zoom_out_effect(clip, zoom_ratio=0.04)
+        return clip
 
 
 def zoom_in_effect(clip, zoom_ratio=0.04):
@@ -493,6 +498,37 @@ def zoom_in_effect(clip, zoom_ratio=0.04):
     return clip.fl(effect)
 
 
+def zoom_out_effect(clip, zoom_ratio=0.01):
+    def effect(get_frame, t):
+        img = Image.fromarray(get_frame(t))
+        base_size = img.size
+
+        new_size = [
+            math.ceil(img.size[0] * (1 - (zoom_ratio * t))),
+            math.ceil(img.size[1] * (1 - (zoom_ratio * t)))
+        ]
+
+        # The new dimensions must be even.
+        new_size[0] = new_size[0] + (new_size[0] % 2)
+        new_size[1] = new_size[1] + (new_size[1] % 2)
+
+        img = img.resize(new_size, Image.LANCZOS)
+
+        x = math.ceil((new_size[0] - base_size[0]) / 2)
+        y = math.ceil((new_size[1] - base_size[1]) / 2)
+
+        img = img.crop([
+            x, y, new_size[0] - x, new_size[1] - y
+        ]).resize(base_size, Image.LANCZOS)
+
+        result = numpy.array(img)
+        img.close()
+
+        return result
+
+    return clip.fl(effect)
+
+
 def create_video():
     clips = []
 
@@ -500,7 +536,7 @@ def create_video():
         './audio_files_raw') if isfile(join('./audio_files_raw', f))]))
     images = natsorted(list(['./images/{}'.format(f)
                        for f in listdir('./images') if isfile(join('./images', f))]))
-    print(voices)
+
     for img, voice in zip(images, voices):
         audio = MP3(voice)
         audio_length = audio.info.length - 0.5
@@ -511,12 +547,12 @@ def create_video():
         clip = clip.set_audio(audio)
         clips.append(clip)
 
-    # clips_fx = [clips[0]]
-    # for clip in clips[1:]:
-    #     clip = zoom_in_effect(clip)
-    #     clips_fx.append(clip)
+    clips_fx = [clips[0]]
+    for clip in clips[1:]:
+        clip = get_random_animation(clip)
+        clips_fx.append(clip)
 
-    final_clip = concatenate_videoclips(clips)
+    final_clip = concatenate_videoclips(clips_fx)
     final_clip.write_videofile("./Final.mp4", fps=24)
 
 
