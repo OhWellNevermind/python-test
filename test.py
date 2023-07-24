@@ -269,7 +269,7 @@ size_slider_label = customtkinter.CTkLabel(
 size_slider_label.pack(pady=6)
 
 size_slider = customtkinter.CTkSlider(
-    master=increase_img_size, from_=1, to=1.5, number_of_steps=10, command=set_size)
+    master=increase_img_size, from_=0.5, to=1.5, number_of_steps=10, command=set_size)
 size_slider.pack()
 size_slider.set(1.25)
 
@@ -471,7 +471,7 @@ def get_random_animation(clip):
         clip.fps = 30
         return clip
     elif (random_num == 3):
-        clip = zoom_out_effect(clip, zoom_ratio=0.04)
+        clip = clip.set_position(lambda t: ('center', t * 20 + 20))
         return clip
     elif (random_num == 4):
         clip = clip.set_position(lambda t: (t * 20 + 20, t * 20 + 20))
@@ -562,24 +562,24 @@ def create_video():
                        for f in listdir('./images') if isfile(join('./images', f))]))
 
     i = True
+    idx = 0
     for img, voice in zip(images, voices):
+        print('idx', idx)
         audio = AudioFileClip(voice)
         audio_length = audio.duration - 0.5
         clip = ImageClip(img, duration=audio_length, ismask=False)
-        clip.size = (1920, 1080)
-        clip = clip.on_color(color=(0, 0, 0), col_opacity=1)
+        clip.size = (1280, 720)
+        clip = clip.on_color(color=(0, 255, 0), col_opacity=1)
         clip = clip.set_audio(audio)
         if not i:
             clip = get_random_animation(clip)
         i = False
-        bg = ColorClip(size=(1920, 1080),
-                       duration=audio_length, color=(0, 0, 0))
-        video = VideoClip(bg.make_frame, duration=audio_length)
-        video_with_img = CompositeVideoClip([video, clip])
+        bg = ColorClip(size=(1280, 720), color=(
+            0, 255, 0), duration=audio_length)
+        video_with_img = CompositeVideoClip([bg, clip])
 
         clips.append(video_with_img)
-        bg.close()
-
+        idx += 1
     final_clip = concatenate_videoclips(clips)
     final_clip.write_videofile("./Final.mp4", fps=30)
 
